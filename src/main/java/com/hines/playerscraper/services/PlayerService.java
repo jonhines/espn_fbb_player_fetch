@@ -1,27 +1,36 @@
-package com.hines.playerscraper;
+package com.hines.playerscraper.services;
 
 import com.hines.playerscraper.entities.Message;
 import com.hines.playerscraper.entities.Player;
 import com.hines.playerscraper.entities.Topics;
-import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class PlayerScrape
+@Service
+public class PlayerService
 {
 
+    private static final Logger logger = LoggerFactory.getLogger(PlayerService.class);
 
-    @Test
-    public void getAllLeagueFreeAgentAdds()
+    private RestTemplate restTemplate;
+
+    public PlayerService(RestTemplate restTemplate)
     {
-        RestTemplate restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
+    }
 
+    public Set<String> getAllFreeAgentAddsForTheSeason()
+    {
+        Set<String> playersAddedAsFreeAgent = new HashSet<>();
         String filters = "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":1553832000000,\"additionalValue\":1564459199999},\"filterIncludeMessageTypeIds\":{\"value\":[178,180]}}}";
 
         HttpHeaders headers = new HttpHeaders();
@@ -51,7 +60,6 @@ public class PlayerScrape
                 Topics.class);
 
             Topics body = responseEntity.getBody();
-            Set<String> playersAddedAsFreeAgent = new HashSet<>();
             // https://fantasy.espn.com/apis/v3/games/flb/seasons/2019/players/%s?scoringPeriodId=0&view=players_wl
             body.getTopics().stream().forEach(topic ->
             {
@@ -73,17 +81,17 @@ public class PlayerScrape
 
                 } catch (Exception e)
                 {
-                    e.printStackTrace();
+                    logger.error("An error occurred fetching player details for Player ID: {}", message.getTargetId(), e);
                 }
             });
 
-            System.out.println(playersAddedAsFreeAgent);
+            return playersAddedAsFreeAgent;
 
         } catch (Exception e)
         {
-            e.printStackTrace();
+            logger.error("An error occurred fetching all FA adds for the league.", e);
+            throw new RuntimeException("An error occurred fetching information from ESPN API! " + e.getMessage());
         }
-
     }
 
 }
