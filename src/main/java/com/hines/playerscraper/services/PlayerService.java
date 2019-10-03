@@ -35,21 +35,47 @@ public class PlayerService
         this.restTemplate = restTemplate;
     }
 
+
+    public Set<String> getAllPlayersClaimedByWaivers()
+    {
+        Set<String> playerNames = new HashSet<>();
+
+        long startDateInMs = getRequestDate(YEAR+ "/03/28 00:00:00");
+        long endDateInMs = getRequestDate(YEAR + "/10/01 00:00:00");
+
+        int messageTypeWaiverClaim = 180;
+
+        String filters = "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":" + startDateInMs + ",\"additionalValue\":" + endDateInMs + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeWaiverClaim + "]}}}";
+
+        playerNames = getTransactions(filters);
+
+        return playerNames;
+    }
+
+    public Set<String> getAllPlayersAddedAsFreeAgent()
+    {
+        Set<String> playerNames = new HashSet<>();
+
+        long startDateInMs = getRequestDate(YEAR+ "/03/28 00:00:00");
+        long endDateInMs = getRequestDate(YEAR + "/10/01 00:00:00");
+
+        int messageTypeFreeAgentAdd = 178;
+
+        String filters = "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":" + startDateInMs + ",\"additionalValue\":" + endDateInMs + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeFreeAgentAdd + "]}}}";
+
+        playerNames = getTransactions(filters);
+
+        return playerNames;
+    }
+
+
     /**
      * Return the names of all players that were added as a FreeAgent or Waiver
      * @return
      */
-    public Set<String> getAllFreeAgentAddsForTheSeason()
+    private Set<String> getTransactions(String filters)
     {
-        Set<String> playersAddedAsFreeAgent = new HashSet<>();
-
-        long startDateInMs = getRequestDate("2019/03/28 00:00:00");
-        long endDateInMs = getRequestDate("2019/10/01 00:00:00");
-
-        int messageTypeFreeAgentAdd = 178;
-        int messageTypeWaiverAdd = 180;
-
-        String filters = "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":" + startDateInMs + ",\"additionalValue\":" + endDateInMs + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeFreeAgentAdd + "," + messageTypeWaiverAdd + "]}}}";
+        Set<String> playerNames = new HashSet<>();
 
         HttpHeaders headers = getEspnRequestHeaders(filters);
 
@@ -73,15 +99,15 @@ public class PlayerService
                 Player player = getPlayerById(message.getTargetId());
                 if (player != null)
                 {
-                    playersAddedAsFreeAgent.add(player.getFullName());
+                    playerNames.add(player.getFullName());
                 }
             });
 
-            return playersAddedAsFreeAgent;
+            return playerNames;
 
         } catch (Exception e)
         {
-            logger.error("An error occurred fetching all FA adds for the league.", e);
+            logger.error("An error occurred fetching all transactions for the league.", e);
             throw new RuntimeException("An error occurred fetching information from ESPN API! " + e.getMessage());
         }
     }

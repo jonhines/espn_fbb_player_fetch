@@ -13,28 +13,36 @@ import java.util.Set;
 
 @RestController
 @CrossOrigin(origins = "*")
-@RequestMapping(value = "/allFreeAgentAdds")
-public class FreeAgentsController
+@RequestMapping(value = "/")
+public class TransactionsController
 {
 
     PlayerService playerService;
 
     @Autowired
-    FreeAgentsController(PlayerService playerService)
+    TransactionsController(PlayerService playerService)
     {
         this.playerService = playerService;
     }
 
     @RequestMapping(
-        value = "",
-        method = RequestMethod.GET)
+            value = "/freeAgentAdds",
+            method = RequestMethod.GET)
     public HashMap<String, Set<String>> getAllFreeAgentAdds()
     {
-
         HashMap<String, Set<String>> responseMap = new HashMap<>();
-        responseMap.put("players", playerService.getAllFreeAgentAddsForTheSeason());
+        responseMap.put("players", playerService.getAllPlayersAddedAsFreeAgent());
         return responseMap;
     }
 
+    @RequestMapping(
+            value = "/waiverClaims",
+            method = RequestMethod.GET)
+    public HashMap<String, Set<String>> getAllWaiverClaims()
+    {
+        HashMap<String, Set<String>> responseMap = new HashMap<>();
+        responseMap.put("players", playerService.getAllPlayersClaimedByWaivers());
+        return responseMap;
+    }
 
 }
