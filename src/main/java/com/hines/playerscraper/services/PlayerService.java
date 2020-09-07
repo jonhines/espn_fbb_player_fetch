@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static org.springframework.util.CollectionUtils.isEmpty;
+
 @Service
 public class PlayerService extends ESPNService
 {
@@ -71,12 +73,17 @@ public class PlayerService extends ESPNService
                     Set<String> rosterNames = new HashSet<String>();
                     if (rosterResponse != null)
                     {
-                        rosterResponse.getBody().getRoster().getEntries().stream().forEach(entry -> {
-                            if (entry.getPlayerPoolEntry() != null)
+                        if (rosterResponse.getBody() != null && rosterResponse.getBody().getRoster() != null
+                            && !isEmpty(rosterResponse.getBody().getRoster().getEntries()))
+                        {
+                            rosterResponse.getBody().getRoster().getEntries().stream().forEach(entry ->
                             {
-                                rosterNames.add(entry.getPlayerPoolEntry().getPlayer().getFullName());
-                            }
-                        });
+                                if (entry.getPlayerPoolEntry() != null)
+                                {
+                                    rosterNames.add(entry.getPlayerPoolEntry().getPlayer().getFullName());
+                                }
+                            });
+                        }
                     }
                     teamRoster.setRoster(rosterNames);
                     teams.add(teamRoster);
