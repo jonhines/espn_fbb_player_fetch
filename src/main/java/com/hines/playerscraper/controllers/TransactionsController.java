@@ -1,12 +1,9 @@
 package com.hines.playerscraper.controllers;
 
 
-import com.hines.playerscraper.services.PlayerService;
+import com.hines.playerscraper.services.TransactionsService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Set;
@@ -17,31 +14,42 @@ import java.util.Set;
 public class TransactionsController
 {
 
-    PlayerService playerService;
+    TransactionsService transactionsService;
 
     @Autowired
-    TransactionsController(PlayerService playerService)
+    TransactionsController(TransactionsService transactionsService)
     {
-        this.playerService = playerService;
+        this.transactionsService = transactionsService;
     }
 
     @RequestMapping(
-            value = "/freeAgentAdds",
-            method = RequestMethod.GET)
-    public HashMap<String, Set<String>> getAllFreeAgentAdds()
+        value = "/freeAgentAdds",
+        method = RequestMethod.GET)
+    public HashMap<String, Set<String>> getAllFreeAgentAdds(@RequestParam(value = "year", required = true) String leagueYear)
     {
         HashMap<String, Set<String>> responseMap = new HashMap<>();
-        responseMap.put("players", playerService.getAllPlayersAddedAsFreeAgent());
+        responseMap.put("players", transactionsService.getAllPlayersAddedAsFreeAgent(leagueYear));
         return responseMap;
     }
 
     @RequestMapping(
-            value = "/waiverClaims",
-            method = RequestMethod.GET)
-    public HashMap<String, Set<String>> getAllWaiverClaims()
+        value = "/waiverClaims",
+        method = RequestMethod.GET)
+    public HashMap<String, Set<String>> getAllWaiverClaims(@RequestParam(value = "year", required = true) String leagueYear)
     {
         HashMap<String, Set<String>> responseMap = new HashMap<>();
-        responseMap.put("players", playerService.getAllPlayersClaimedByWaivers());
+        responseMap.put("players", transactionsService.getAllPlayersClaimedByWaivers(leagueYear));
+        return responseMap;
+    }
+
+    @RequestMapping(
+        value = "/allTransactions",
+        method = RequestMethod.GET)
+    public HashMap<String, Set<String>> getAllTransactions(@RequestParam(value = "year", required = true) String leagueYear)
+    {
+        HashMap<String, Set<String>> responseMap = new HashMap<>();
+        responseMap.put("waiverAdds", transactionsService.getAllPlayersClaimedByWaivers(leagueYear));
+        responseMap.put("freeAgentAdds", transactionsService.getAllPlayersAddedAsFreeAgent(leagueYear));
         return responseMap;
     }
 

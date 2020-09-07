@@ -4,14 +4,9 @@ package com.hines.playerscraper.controllers;
 import com.hines.playerscraper.models.TeamRoster;
 import com.hines.playerscraper.services.PlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @CrossOrigin(origins = "*")
@@ -28,11 +23,11 @@ public class RostersController
     }
 
     @RequestMapping(
-            value = "",
-            method = RequestMethod.GET)
-    public List<TeamRoster> getTeamRosters()
+        value = "",
+        method = RequestMethod.GET)
+    public List<TeamRoster> getTeamRosters(@RequestParam(value = "year", required = true) String leagueYear)
     {
-        return playerService.getTeamRosters();
+        return playerService.getTeamRosters(leagueYear);
     }
 
 
