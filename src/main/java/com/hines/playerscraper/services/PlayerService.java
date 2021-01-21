@@ -66,7 +66,7 @@ public class PlayerService extends ESPNService
                     // https://fantasy.espn.com/apis/v3/games/flb/seasons/leagueYear/segments/0/leagues/30710/teams/2?view=roster
                     ResponseEntity<Team> rosterResponse = restTemplate.exchange(
                         "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear + "/segments/0/leagues/" + LEAGUE_ID + "/teams/" + team
-                            .getId() + "?view=roster",
+                            .getId() + "?view=mRoster",
                         HttpMethod.GET,
                         entity,
                         Team.class);
@@ -92,7 +92,7 @@ public class PlayerService extends ESPNService
             return teams;
         } catch (Exception e)
         {
-            logger.error("an error occurred feching team rosters", e);
+            logger.error("an error occurred fetching team rosters", e);
         }
 
         return null;

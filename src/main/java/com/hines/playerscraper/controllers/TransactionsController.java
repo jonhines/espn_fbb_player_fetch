@@ -2,12 +2,15 @@ package com.hines.playerscraper.controllers;
 
 
 import com.hines.playerscraper.services.TransactionsService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Set;
 
+@Api(value = "League Transactions")
 @RestController
 @CrossOrigin(origins = "*")
 @RequestMapping(value = "/")
@@ -22,6 +25,7 @@ public class TransactionsController
         this.transactionsService = transactionsService;
     }
 
+    @ApiOperation(value = "Get all freeAgent additions for a given season")
     @RequestMapping(
         value = "/freeAgentAdds",
         method = RequestMethod.GET)
@@ -32,6 +36,7 @@ public class TransactionsController
         return responseMap;
     }
 
+    @ApiOperation(value = "Get all waiverClaims for a given season")
     @RequestMapping(
         value = "/waiverClaims",
         method = RequestMethod.GET)
@@ -42,6 +47,7 @@ public class TransactionsController
         return responseMap;
     }
 
+    @ApiOperation(value = "Get all freeAgentAdds and waiverClaims in one request, for a given season")
     @RequestMapping(
         value = "/allTransactions",
         method = RequestMethod.GET)
