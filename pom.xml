@@ -15,7 +15,7 @@
     <description>Utility app for interacting with ESPN fantasy API to fetch player data</description>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
     </properties>
 
     <dependencies>
