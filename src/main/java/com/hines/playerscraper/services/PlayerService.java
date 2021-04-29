@@ -155,88 +155,94 @@ public class PlayerService extends ESPNService
      * Take that summarization of data and send an email to the owner.
      *
      * @param leagueYear
-     * @param teamId
+     * @param teamIds
      * @return
      */
-    public Object sendMatchupSummaryForTeamForToday(String leagueYear, int teamId)
+    public void sendMatchupSummaryForTeamsForToday(String leagueYear, Set<Integer> teamIds)
     {
         LocalDate d = LocalDate.now(ZoneId.of("America/New_York"));
         String dateToFetchSummaryFor = d.format(DateTimeFormatter.ofPattern("YYYYMMdd"));
 
         HttpEntity<Topics> entity = new HttpEntity<>(getEspnRequestHeaders(leagueYear, null));
 
-        Team teamToFetch = Team.builder().id(teamId).build();
+        teamIds.stream().forEach(teamId -> {
+            Team teamToFetch = Team.builder().id(teamId).build();
 
-        Team teamRoster = getTeam(leagueYear, entity, teamToFetch);
+            Team teamRoster = getTeam(leagueYear, entity, teamToFetch);
 
-        List<Player> myTeamPlayers = new ArrayList<>();
-        teamRoster.getRoster().getEntries().stream().forEach(rosterEntry ->
-        {
-            // only include non-pitchers AKA HITTERS!
-            int startingPitcherPositionId = 1;
-            int reliefPitcherPositionId = 11;
-            Player player = rosterEntry.getPlayerPoolEntry().getPlayer();
-            if (player.getDefaultPositionId()
-                != startingPitcherPositionId
-                && player.getDefaultPositionId()
-                != reliefPitcherPositionId)
+            List<Player> myTeamPlayers = new ArrayList<>();
+            teamRoster.getRoster().getEntries().stream().forEach(rosterEntry ->
             {
-                // for some reason ESPN loves to hide the handedness of the players, so we have to make
-                // another request to get that for each player
-                PlayerAthlete playerWithDetails = getPlayerDetails(rosterEntry.getPlayerId());
-                player.setDisplayBatsThrows(
-                    getHitHandedness(playerWithDetails.getDisplayBatsThrows()));
+                // only include non-pitchers AKA HITTERS!
+                int startingPitcherPositionId = 1;
+                int reliefPitcherPositionId = 11;
+                Player player = rosterEntry.getPlayerPoolEntry().getPlayer();
+                if (player.getDefaultPositionId()
+                    != startingPitcherPositionId
+                    && player.getDefaultPositionId()
+                    != reliefPitcherPositionId)
+                {
+                    // for some reason ESPN loves to hide the handedness of the players, so we have to make
+                    // another request to get that for each player
+                    PlayerAthlete playerWithDetails = getPlayerDetails(rosterEntry.getPlayerId());
+                    player.setDisplayBatsThrows(
+                        getHitHandedness(playerWithDetails.getDisplayBatsThrows()));
+                    player.setPositionName(getPositionName(player.getDefaultPositionId()));
 
-                myTeamPlayers.add(player);
+                    myTeamPlayers.add(player);
+                }
+            });
+
+            // sort players by their default positions
+            myTeamPlayers.sort(comparingInt(Player::getDefaultPositionId));
+
+            // get all games for the day:
+            String scheduleUrl =
+                "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
+                    + dateToFetchSummaryFor;
+            ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
+                .getForEntity(
+                    scheduleUrl,
+                    ScheduledMatchupContainer.class);
+
+            HashMap<String, List<CompetitorsItem>> gameToTeamsInMatchup = new HashMap<>();
+
+            ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
+                .getBody();
+            scheduledMatchupContainer.getEvents().stream().forEach(event ->
+            {
+
+                // always assume theres at least one competition, which is the actual game
+                CompetitionsItem theGame = event.getCompetitions().get(0);
+
+                gameToTeamsInMatchup.put(theGame.getId(), theGame.getCompetitors());
+
+                // always assume theres two teams playing
+                CompetitorsItem teamOne = theGame.getCompetitors().get(0);
+                CompetitorsItem teamTwo = theGame.getCompetitors().get(1);
+
+                // check if any players match for teamOne, if so, write opposing data of teamId two
+                Set<Player> myHittersOnTeamOne = myTeamPlayers.stream()
+                    .filter(player -> String.valueOf(player.getProTeamId()).equals(teamOne.getId()))
+                    .collect(
+                        Collectors.toSet());
+
+                Set<Player> myHittersOnTeamTwo = myTeamPlayers.stream()
+                    .filter(player -> String.valueOf(player.getProTeamId()).equals(teamTwo.getId()))
+                    .collect(
+                        Collectors.toSet());
+
+                updatePlayersWithOpposingTeamInfo(teamTwo, myHittersOnTeamOne, event);
+                updatePlayersWithOpposingTeamInfo(teamOne, myHittersOnTeamTwo, event);
+
+            });
+
+            String email = lookupEmailByTeam(teamId);
+            if(email != null)
+            {
+                emailSenderService.sendEmail(myTeamPlayers, email);
             }
         });
-
-        // sort players by their default positions
-        myTeamPlayers.sort(comparingInt(Player::getDefaultPositionId));
-
-        // get all games for the day:
-        String scheduleUrl =
-            "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
-                + dateToFetchSummaryFor;
-        ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
-            .getForEntity(
-                scheduleUrl,
-                ScheduledMatchupContainer.class);
-
-        HashMap<String, List<CompetitorsItem>> gameToTeamsInMatchup = new HashMap<>();
-
-        ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
-            .getBody();
-        scheduledMatchupContainer.getEvents().stream().forEach(event ->
-        {
-
-            // always assume theres at least one competition, which is the actual game
-            CompetitionsItem theGame = event.getCompetitions().get(0);
-
-            gameToTeamsInMatchup.put(theGame.getId(), theGame.getCompetitors());
-
-            // always assume theres two teams playing
-            CompetitorsItem teamOne = theGame.getCompetitors().get(0);
-            CompetitorsItem teamTwo = theGame.getCompetitors().get(1);
-
-            // check if any players match for teamOne, if so, write opposing data of teamId two
-            Set<Player> myHittersOnTeamOne = myTeamPlayers.stream()
-                .filter(player -> String.valueOf(player.getProTeamId()).equals(teamOne.getId()))
-                .collect(
-                    Collectors.toSet());
-
-            Set<Player> myHittersOnTeamTwo = myTeamPlayers.stream()
-                .filter(player -> String.valueOf(player.getProTeamId()).equals(teamTwo.getId()))
-                .collect(
-                    Collectors.toSet());
-
-            updatePlayersWithOpposingTeamInfo(teamTwo, myHittersOnTeamOne, event);
-            updatePlayersWithOpposingTeamInfo(teamOne, myHittersOnTeamTwo, event);
-
-        });
-
-        emailSenderService.sendEmail(myTeamPlayers, "jonrhines@gmail.com");
-        return myTeamPlayers;
     }
 
     /**
@@ -274,7 +280,6 @@ public class PlayerService extends ESPNService
             myPlayer.setOpposingPitcher(playerAthlete);
             myPlayer.setOpposingTeamHomeAway(opposingTeam.getHomeAway());
             myPlayer.setOpposingTeamId(opposingTeam.getId());
-            myPlayer.setPositionName(getPositionName(myPlayer.getDefaultPositionId()));
 
             String opposingTeamName = opposingTeam.getTeam().getAbbreviation();
             if (opposingTeam.getHomeAway().equals("home"))
@@ -377,5 +382,59 @@ public class PlayerService extends ESPNService
         String[] split = displayBatsThrows.split("/");
         String val = split[0];
         return String.valueOf(val.charAt(0));
+    }
+
+    private String lookupEmailByTeam(int teamId)
+    {
+        if(teamId == 1)
+        {
+            return "Matthew.bartolini@gmail.com";
+        }
+        if(teamId == 2)
+        {
+            return "jonrhines@gmail.com";
+        }
+        if(teamId == 3)
+        {
+            return "kevinmfox@gmail.com";
+        }
+        if(teamId == 4)
+        {
+            return "flight.matt@gmail.com";
+        }
+        if(teamId == 5)
+        {
+            return "anthony.hurd@gmail.com";
+        }
+        if(teamId == 6)
+        {
+            return null;
+        }
+        if(teamId == 7)
+        {
+            return "MatthewMBelair@gmail.com";
+        }
+        if(teamId == 8)
+        {
+            return null;
+        }
+        if(teamId == 9)
+        {
+            return null;
+        }
+        if(teamId == 10)
+        {
+            return null;
+        }
+        if(teamId == 11)
+        {
+            return null;
+        }
+        if(teamId == 12)
+        {
+            return "Benjamin.j.rosenfeld@gmail.com";
+        }
+
+        return null;
     }
 }

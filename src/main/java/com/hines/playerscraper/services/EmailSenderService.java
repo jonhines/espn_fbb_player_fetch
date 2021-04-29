@@ -26,10 +26,7 @@ public class EmailSenderService
     public void sendEmail(Object jsonToSend, String email)
     {
         Email from = new Email("jonrhines@gmail.com");
-        String subject = "The League Summary";
         Email to = new Email(email);
-        Content content = new Content("application/json",
-            new ObjectMapper().writeValueAsString(jsonToSend));
 
         Mail mail = new Mail();
         mail.setTemplateId("d-7c127168cdea47078aae44177fa8a96e");
@@ -39,7 +36,7 @@ public class EmailSenderService
         Personalization personalization = new Personalization();
         personalization.addTo(to);
         personalization.addDynamicTemplateData("players", jsonToSend);
-        personalization.setSubject("The League: Daily Matchups");
+        personalization.setSubject("The League: The daily matchups for your hitters, hooray!");
         mail.addPersonalization(personalization);
 
         SendGrid sg = new SendGrid(sendGridKey);

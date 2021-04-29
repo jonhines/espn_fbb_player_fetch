@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @Api(value = "League Rosters")
 @RestController
@@ -44,14 +45,15 @@ public class RostersController
         method = RequestMethod.GET)
     public ResponseEntity<Object> kickOffEmail(@RequestParam(value = "year", required = true) String leagueYear,
         @RequestParam(value = "apiKey", required = true) String apiKey,
-        @RequestParam(value = "teamId", required = true) int teamId) throws AuthenticationException
+        @RequestParam(value = "teamId", required = true) Set<Integer> teamIds) throws AuthenticationException
     {
         // this is the worst auth of all time
         if(!"sirhiss".equals(apiKey))
         {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("NOPE");
         }
-        return ResponseEntity.status(200).body(playerService.sendMatchupSummaryForTeamForToday(leagueYear, teamId));
+        playerService.sendMatchupSummaryForTeamsForToday(leagueYear, teamIds);
+        return ResponseEntity.status(200).body("SENT!");
     }
 
 }
