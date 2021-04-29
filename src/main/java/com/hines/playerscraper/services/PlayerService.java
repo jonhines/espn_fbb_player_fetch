@@ -165,7 +165,28 @@ public class PlayerService extends ESPNService
 
         HttpEntity<Topics> entity = new HttpEntity<>(getEspnRequestHeaders(leagueYear, null));
 
+        // get all games for the day:
+        String scheduleUrl =
+            "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
+                + dateToFetchSummaryFor;
+        ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
+            .getForEntity(
+                scheduleUrl,
+                ScheduledMatchupContainer.class);
+
+        ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
+            .getBody();
+
+        // loop through each team and attempt to send
         teamIds.stream().forEach(teamId -> {
+
+            String email = lookupEmailByTeam(teamId);
+            // no email setup? then dont bother!
+            if(email == null)
+            {
+                return;
+            }
+
             Team teamToFetch = Team.builder().id(teamId).build();
 
             Team teamRoster = getTeam(leagueYear, entity, teamToFetch);
@@ -196,26 +217,11 @@ public class PlayerService extends ESPNService
             // sort players by their default positions
             myTeamPlayers.sort(comparingInt(Player::getDefaultPositionId));
 
-            // get all games for the day:
-            String scheduleUrl =
-                "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
-                    + dateToFetchSummaryFor;
-            ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
-                .getForEntity(
-                    scheduleUrl,
-                    ScheduledMatchupContainer.class);
 
-            HashMap<String, List<CompetitorsItem>> gameToTeamsInMatchup = new HashMap<>();
-
-            ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
-                .getBody();
             scheduledMatchupContainer.getEvents().stream().forEach(event ->
             {
-
                 // always assume theres at least one competition, which is the actual game
                 CompetitionsItem theGame = event.getCompetitions().get(0);
-
-                gameToTeamsInMatchup.put(theGame.getId(), theGame.getCompetitors());
 
                 // always assume theres two teams playing
                 CompetitorsItem teamOne = theGame.getCompetitors().get(0);
@@ -237,7 +243,6 @@ public class PlayerService extends ESPNService
 
             });
 
-            String email = lookupEmailByTeam(teamId);
             if(email != null)
             {
                 emailSenderService.sendEmail(myTeamPlayers, email);
