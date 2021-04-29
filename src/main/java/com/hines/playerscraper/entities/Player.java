@@ -1,17 +1,28 @@
 package com.hines.playerscraper.entities;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Player
 {
 
     String fullName;
+    int defaultPositionId;
+    int proTeamId;
+    boolean injured;
+    String displayBatsThrows;
 
-    public String getFullName()
-    {
-        return fullName;
-    }
+    String positionName;
+    String opposingTeamId;
+    String opposingTeamHomeAway;
+    String opposingTeamName;
+    String gameTime;
+    String opposingTeamSummary;
+    PlayerAthlete opposingPitcher;
 
-    public void setFullName(String fullName)
-    {
-        this.fullName = fullName;
-    }
 }

@@ -1,5 +1,4 @@
 package com.hines.playerscraper.entities;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,13 +8,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Team
-{
-
-    String abbreviation;
-    int id;
-    String location;
-    String displayName;
-    String nickname;
-    Roster roster;
+public class ProbablesItem{
+	private String shortDisplayName;
+	private Athlete athlete;
+	private String displayName;
+	private String name;
+	private String abbreviation;
+	private int playerId;
 }

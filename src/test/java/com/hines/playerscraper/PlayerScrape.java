@@ -10,8 +10,15 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TimeZone;
 
 public class PlayerScrape
 {
@@ -20,6 +27,11 @@ public class PlayerScrape
     @Test
     public void getAllLeagueFreeAgentAdds()
     {
+
+
+        LocalDate d = LocalDate.now(ZoneId.of("America/New_York"));
+        String dateToFetchSummaryFor = d.format(DateTimeFormatter.ofPattern("YYYYMMdd"));
+
         RestTemplate restTemplate = new RestTemplate();
 
         String filters = "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":1553832000000,\"additionalValue\":1564459199999},\"filterIncludeMessageTypeIds\":{\"value\":[178,180]}}}";

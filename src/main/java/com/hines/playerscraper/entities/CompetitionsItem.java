@@ -10,7 +10,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Roster
-{
-    List<RosterEntry> entries;
+public class CompetitionsItem{
+	private String date;
+	private String uid;
+	private List<CompetitorsItem> competitors;
+	private List<Object> notes;
+	private String id;
+	private String startDate;
+	private Status status;
 }

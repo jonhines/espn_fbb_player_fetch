@@ -17,6 +17,7 @@
     <properties>
         <java.version>11</java.version>
         <spring-swagger.version>2.9.2</spring-swagger.version>
+        <lombok.version>1.18.14</lombok.version>
     </properties>
 
     <dependencies>
@@ -41,6 +42,20 @@
             <version>${spring-swagger.version}</version>
         </dependency>
         <!-- END: Swagger -->
+        <!-- START: Lombok -->
+        <dependency>
+            <artifactId>lombok</artifactId>
+            <groupId>org.projectlombok</groupId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- END: Lombok -->
+
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.7.2</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
