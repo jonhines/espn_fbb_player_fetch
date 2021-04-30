@@ -10,6 +10,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static java.time.ZoneId.*;
 import static java.util.Comparator.*;
+import static org.springframework.util.CollectionUtils.*;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
@@ -264,25 +266,29 @@ public class PlayerService extends ESPNService
         myPlayersPlayingThatTeam.stream().forEach(myPlayer ->
         {
 
-            int probablePitcherId = opposingTeam.getProbables().get(0).getPlayerId();
-            Optional<PlayerAthlete> playerAthleteOptional = cachedProbablePitchers.stream()
-                .filter(pp -> pp.getId().equals(String.valueOf(probablePitcherId))).findFirst();
-
-            PlayerAthlete playerAthlete = null;
-            // if we havent already looked this one up, do so
-            if (!playerAthleteOptional.isPresent())
+            if(opposingTeam != null && !isEmpty(opposingTeam.getProbables()))
             {
-                playerAthlete = getPlayerDetails(probablePitcherId);
+                int probablePitcherId = opposingTeam.getProbables().get(0).getPlayerId();
+                Optional<PlayerAthlete> probablePitcherOptional = cachedProbablePitchers.stream()
+                    .filter(pp -> pp.getId().equals(String.valueOf(probablePitcherId))).findFirst();
 
-                cachedProbablePitchers.add(playerAthlete);
-            } else
-            {
-                playerAthlete = playerAthleteOptional.get();
+                PlayerAthlete probablePitcherAthlete = null;
+                // if we havent already looked this one up, do so
+                if (!probablePitcherOptional.isPresent())
+                {
+                    probablePitcherAthlete = getPlayerDetails(probablePitcherId);
+
+                    cachedProbablePitchers.add(probablePitcherAthlete);
+                } else
+                {
+                    probablePitcherAthlete = probablePitcherOptional.get();
+                }
+
+                probablePitcherAthlete.setDisplayBatsThrows(getThrowArm(probablePitcherAthlete.getDisplayBatsThrows()));
+
+                myPlayer.setOpposingPitcher(probablePitcherAthlete);
             }
 
-            playerAthlete.setDisplayBatsThrows(getThrowArm(playerAthlete.getDisplayBatsThrows()));
-
-            myPlayer.setOpposingPitcher(playerAthlete);
             myPlayer.setOpposingTeamHomeAway(opposingTeam.getHomeAway());
             myPlayer.setOpposingTeamId(opposingTeam.getId());
 
