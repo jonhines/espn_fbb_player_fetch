@@ -180,11 +180,12 @@ public class PlayerService extends ESPNService
             .getBody();
 
         // loop through each team and attempt to send
-        teamIds.stream().forEach(teamId -> {
+        teamIds.stream().forEach(teamId ->
+        {
 
             String email = lookupEmailByTeam(teamId);
             // no email setup? then dont bother!
-            if(email == null)
+            if (email == null)
             {
                 return;
             }
@@ -208,6 +209,7 @@ public class PlayerService extends ESPNService
                     // for some reason ESPN loves to hide the handedness of the players, so we have to make
                     // another request to get that for each player
                     PlayerAthlete playerWithDetails = getPlayerDetails(rosterEntry.getPlayerId());
+                    player.setPlayerId(rosterEntry.getPlayerId());
                     player.setDisplayBatsThrows(
                         getHitHandedness(playerWithDetails.getDisplayBatsThrows()));
                     player.setPositionName(getPositionName(player.getDefaultPositionId()));
@@ -218,7 +220,6 @@ public class PlayerService extends ESPNService
 
             // sort players by their default positions
             myTeamPlayers.sort(comparingInt(Player::getDefaultPositionId));
-
 
             scheduledMatchupContainer.getEvents().stream().forEach(event ->
             {
@@ -245,7 +246,7 @@ public class PlayerService extends ESPNService
 
             });
 
-            if(email != null)
+            if (email != null)
             {
                 emailSenderService.sendEmail(myTeamPlayers, email);
             }
@@ -266,7 +267,7 @@ public class PlayerService extends ESPNService
         myPlayersPlayingThatTeam.stream().forEach(myPlayer ->
         {
 
-            if(opposingTeam != null && !isEmpty(opposingTeam.getProbables()))
+            if (opposingTeam != null && !isEmpty(opposingTeam.getProbables()))
             {
                 int probablePitcherId = opposingTeam.getProbables().get(0).getPlayerId();
                 Optional<PlayerAthlete> probablePitcherOptional = cachedProbablePitchers.stream()
@@ -284,9 +285,16 @@ public class PlayerService extends ESPNService
                     probablePitcherAthlete = probablePitcherOptional.get();
                 }
 
-                probablePitcherAthlete.setDisplayBatsThrows(getThrowArm(probablePitcherAthlete.getDisplayBatsThrows()));
+                probablePitcherAthlete.setDisplayBatsThrows(
+                    getThrowArm(probablePitcherAthlete.getDisplayBatsThrows()));
 
                 myPlayer.setOpposingPitcher(probablePitcherAthlete);
+
+                PlayerSplits playerSplits = getPlayerSplits(myPlayer.getPlayerId());
+                String opsVsLefty = findSplitStatByName(playerSplits, "L", "OPS");
+                String opsVsRighty = findSplitStatByName(playerSplits, "R", "OPS");
+                myPlayer.setOpsVsLefties(opsVsLefty);
+                myPlayer.setOpsVsRighties(opsVsRighty);
             }
 
             myPlayer.setOpposingTeamHomeAway(opposingTeam.getHomeAway());
@@ -319,6 +327,62 @@ public class PlayerService extends ESPNService
             PlayerAthleteContainer.class);
         playerAthlete = athleteResponse.getBody().getAthlete();
         return playerAthlete;
+    }
+
+    private PlayerSplits getPlayerSplits(int playerId)
+    {
+        String url = String.format(
+            "https://site.web.api.espn.com/apis/common/v3/sports/baseball/mlb/athletes/%s/splits?region=us&lang=en",
+            playerId);
+        ResponseEntity<PlayerSplits> playerSplitsResponse = restTemplate.getForEntity(
+            url,
+            PlayerSplits.class);
+        return playerSplitsResponse.getBody();
+    }
+
+    /**
+     * Supported statTypes: "AB","R","H","2B","3B","HR","RBI","BB","HBP","SO","SB","CS","AVG","OBP","SLG","OPS
+     *
+     * @param playerSplits
+     * @param statName
+     * @return
+     */
+    private String findSplitStatByName(PlayerSplits playerSplits, String opposingPitcherThrows,
+        String statName)
+    {
+        try
+        {
+            // ESPN reports splits via:
+            //        "vs. Left"
+            //        "vs. Right"
+
+            String splitTypeToMatch = "vs. Right";
+            if(opposingPitcherThrows.equals("L"))
+            {
+                splitTypeToMatch = "vs. Left";
+            }
+
+            String finalSplitTypeToMatch = splitTypeToMatch;
+
+            List<String> statsToMatch = new ArrayList<>();
+            playerSplits.getSplitCategories().forEach((splitCategoriesItem ->
+            {
+                splitCategoriesItem.getSplits().forEach(split ->
+                {
+                    if(split.getDisplayName().equals(finalSplitTypeToMatch))
+                    {
+                        statsToMatch.addAll(split.getStats());
+                    }
+                });
+            }));
+
+            int statNameIndex = playerSplits.getLabels().indexOf(statName);
+            return statsToMatch.get(statNameIndex);
+        } catch(Exception e)
+        {
+            logger.error("STAT CALCULATION ERROR OCCURRED!  {} {} {} ", playerSplits, opposingPitcherThrows, statName);
+            return "";
+        }
     }
 
     /**
@@ -397,51 +461,51 @@ public class PlayerService extends ESPNService
 
     private String lookupEmailByTeam(int teamId)
     {
-        if(teamId == 1)
+        if (teamId == 1)
         {
             return "Matthew.bartolini@gmail.com";
         }
-        if(teamId == 2)
+        if (teamId == 2)
         {
             return "jonrhines@gmail.com";
         }
-        if(teamId == 3)
+        if (teamId == 3)
         {
             return "kevinmfox@gmail.com";
         }
-        if(teamId == 4)
+        if (teamId == 4)
         {
             return "flight.matt@gmail.com";
         }
-        if(teamId == 5)
+        if (teamId == 5)
         {
             return "anthony.hurd@gmail.com";
         }
-        if(teamId == 6)
+        if (teamId == 6)
         {
             return null;
         }
-        if(teamId == 7)
+        if (teamId == 7)
         {
             return "MatthewMBelair@gmail.com";
         }
-        if(teamId == 8)
+        if (teamId == 8)
         {
             return null;
         }
-        if(teamId == 9)
+        if (teamId == 9)
         {
             return null;
         }
-        if(teamId == 10)
+        if (teamId == 10)
         {
             return null;
         }
-        if(teamId == 11)
+        if (teamId == 11)
         {
             return null;
         }
-        if(teamId == 12)
+        if (teamId == 12)
         {
             return "Benjamin.j.rosenfeld@gmail.com";
         }

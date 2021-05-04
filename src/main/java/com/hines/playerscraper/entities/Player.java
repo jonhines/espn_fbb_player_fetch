@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 public class Player
 {
 
+    int playerId;
     String fullName;
     int defaultPositionId;
     int proTeamId;
@@ -23,6 +24,8 @@ public class Player
     String opposingTeamName;
     String gameTime;
     String opposingTeamSummary;
+    String opsVsLefties;
+    String opsVsRighties;
     PlayerAthlete opposingPitcher;
 
 }

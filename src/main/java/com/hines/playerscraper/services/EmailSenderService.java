@@ -31,7 +31,6 @@ public class EmailSenderService
         Mail mail = new Mail();
         mail.setTemplateId("d-7c127168cdea47078aae44177fa8a96e");
         mail.setFrom(from);
-        mail.setFrom(from);
 
         Personalization personalization = new Personalization();
         personalization.addTo(to);
