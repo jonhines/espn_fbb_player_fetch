@@ -4,6 +4,7 @@ import com.hines.playerscraper.entities.*;
 import com.hines.playerscraper.models.TeamRoster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -35,7 +36,7 @@ public class PlayerService extends ESPNService
     private RestTemplate restTemplate;
     private EmailSenderService emailSenderService;
 
-    public PlayerService(RestTemplate restTemplate, EmailSenderService emailSenderService)
+    public PlayerService(@Qualifier("espnTemplate") RestTemplate restTemplate, EmailSenderService emailSenderService)
     {
         this.restTemplate = restTemplate;
         this.emailSenderService = emailSenderService;

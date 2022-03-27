@@ -35,7 +35,7 @@ public class EmailSenderService
         Personalization personalization = new Personalization();
         personalization.addTo(to);
         personalization.addDynamicTemplateData("players", jsonToSend);
-        personalization.setSubject("The League: The daily matchups for your hitters, hooray!");
+        personalization.setSubject("The League: Your daily matchups are here!");
         mail.addPersonalization(personalization);
 
         SendGrid sg = new SendGrid(sendGridKey);

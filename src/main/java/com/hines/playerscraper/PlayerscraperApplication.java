@@ -18,7 +18,7 @@ public class PlayerscraperApplication {
 	}
 
 
-	@Bean
+	@Bean(name="espnTemplate")
 	public RestTemplate restTemplate(RestTemplateBuilder builder)
 	{
 		return builder.setConnectTimeout(ofMillis(500000))
