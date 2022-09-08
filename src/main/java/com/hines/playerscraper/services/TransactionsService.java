@@ -2,6 +2,7 @@ package com.hines.playerscraper.services;
 
 import com.hines.playerscraper.entities.Message;
 import com.hines.playerscraper.entities.Player;
+import com.hines.playerscraper.entities.FreeAgentContainer;
 import com.hines.playerscraper.entities.Topics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,16 +17,19 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 
 @Service
 public class TransactionsService extends ESPNService
 {
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionsService.class);
+
 
     private RestTemplate restTemplate;
     private PlayerService playerService;
@@ -35,7 +39,6 @@ public class TransactionsService extends ESPNService
         this.playerService = playerService;
         this.restTemplate = restTemplate;
     }
-
 
     public HashSet<String> getAllPlayersClaimedByWaivers(String leagueYear)
     {
@@ -48,7 +51,8 @@ public class TransactionsService extends ESPNService
 
         String filters =
             "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":"
-                + startDateInMs + ",\"additionalValue\":" + endDateInMs + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeWaiverClaim
+                + startDateInMs + ",\"additionalValue\":" + endDateInMs
+                + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeWaiverClaim
                 + "]}}}";
 
         playerNames = getTransactions(leagueYear, filters);
@@ -67,7 +71,8 @@ public class TransactionsService extends ESPNService
 
         String filters =
             "{\"topics\":{\"filterType\":{\"value\":[\"ACTIVITY_TRANSACTIONS\"]},\"limit\":2000,\"limitPerMessageSet\":{\"value\":2000},\"offset\":0,\"sortMessageDate\":{\"sortPriority\":1,\"sortAsc\":false},\"sortFor\":{\"sortPriority\":2,\"sortAsc\":false},\"filterDateRange\":{\"value\":"
-                + startDateInMs + ",\"additionalValue\":" + endDateInMs + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeFreeAgentAdd
+                + startDateInMs + ",\"additionalValue\":" + endDateInMs
+                + "},\"filterIncludeMessageTypeIds\":{\"value\":[" + messageTypeFreeAgentAdd
                 + "]}}}";
 
         playerNames = getTransactions(leagueYear, filters);
@@ -91,9 +96,11 @@ public class TransactionsService extends ESPNService
         {
             HttpEntity<Topics> entity = new HttpEntity<>(headers);
 
+            String url = "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+                    + "/segments/0/leagues/" + LEAGUE_ID
+                    + "/communication/?view=kona_league_communication";
             ResponseEntity<Topics> responseEntity = restTemplate.exchange(
-                "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear + "/segments/0/leagues/" + LEAGUE_ID
-                    + "/communication/?view=kona_league_communication",
+                url,
                 HttpMethod.GET,
                 entity,
                 Topics.class);
@@ -104,7 +111,8 @@ public class TransactionsService extends ESPNService
             {
                 // when polling only for FA Adds, there will only be a single message, make this more dynamic later
                 Message message = topic.getMessages().get(0);
-                CompletableFuture<Player> playerFuture = playerService.getPlayerByIdAsync(leagueYear, message.getTargetId());
+                CompletableFuture<Player> playerFuture = playerService
+                    .getPlayerByIdAsync(leagueYear, message.getTargetId());
                 try
                 {
                     playerNames.add(playerFuture.get(2, TimeUnit.SECONDS).getFullName());
@@ -119,9 +127,12 @@ public class TransactionsService extends ESPNService
         } catch (Exception e)
         {
             logger.error("An error occurred fetching all transactions for the league.", e);
-            throw new RuntimeException("An error occurred fetching information from ESPN API! " + e.getMessage());
+            throw new RuntimeException(
+                "An error occurred fetching information from ESPN API! " + e.getMessage());
         }
     }
+
+
 
     /**
      * @param dateString - example: "2019/03/01 00:00:00"

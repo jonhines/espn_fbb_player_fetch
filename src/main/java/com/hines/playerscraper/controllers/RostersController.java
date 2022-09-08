@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +34,8 @@ public class RostersController
     @RequestMapping(
         value = "",
         method = RequestMethod.GET)
-    public List<TeamRoster> getTeamRosters(@RequestParam(value = "year", required = true) String leagueYear)
+    public List<TeamRoster> getTeamRosters(
+        @RequestParam(value = "year", required = true) String leagueYear)
     {
         return playerService.getTeamRosters(leagueYear);
     }
@@ -43,12 +45,14 @@ public class RostersController
     @RequestMapping(
         value = "email",
         method = RequestMethod.GET)
-    public ResponseEntity<Object> kickOffEmail(@RequestParam(value = "year", required = true) String leagueYear,
+    public ResponseEntity<Object> kickOffEmail(
+        @RequestParam(value = "year", required = true) String leagueYear,
         @RequestParam(value = "apiKey", required = true) String apiKey,
-        @RequestParam(value = "teamId", required = true) Set<Integer> teamIds) throws AuthenticationException
+        @RequestParam(value = "teamId", required = true) Set<Integer> teamIds)
+        throws AuthenticationException
     {
         // this is the worst auth of all time
-        if(!"sirhiss".equals(apiKey))
+        if (!"sirhiss".equals(apiKey))
         {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("NOPE");
         }
@@ -56,4 +60,22 @@ public class RostersController
         return ResponseEntity.status(200).body("SENT!");
     }
 
+
+    @ApiOperation(value = "Send an email for potential freeAgent bats to pickup")
+    @RequestMapping(
+        value = "email/freeAgentBats",
+        method = RequestMethod.GET)
+    public ResponseEntity<Object> freeAgentBatsEmailSend(
+        @RequestParam(value = "year", required = true) String leagueYear,
+        @RequestParam(value = "apiKey", required = true) String apiKey,
+        @RequestParam(value = "numPlayers", required = true, defaultValue = "50") int numPlayers)
+    {
+        // this is the worst auth of all time
+        if (!"sirhiss".equals(apiKey))
+        {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
+        }
+        playerService.sendFreeAgentBatsToConsiderEmail(leagueYear, numPlayers);
+        return ResponseEntity.status(200).body("SENT!");
+    }
 }

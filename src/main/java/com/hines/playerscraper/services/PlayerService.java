@@ -7,11 +7,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -22,9 +22,10 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static java.time.ZoneId.*;
-import static java.util.Comparator.*;
-import static org.springframework.util.CollectionUtils.*;
+import static com.hines.playerscraper.entities.Player.getHitHandedness;
+import static com.hines.playerscraper.entities.Player.getThrowArm;
+import static java.time.ZoneId.of;
+import static java.util.Comparator.comparingInt;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Service
@@ -36,11 +37,53 @@ public class PlayerService extends ESPNService
     private RestTemplate restTemplate;
     private EmailSenderService emailSenderService;
 
-    public PlayerService(@Qualifier("espnTemplate") RestTemplate restTemplate, EmailSenderService emailSenderService)
+    public PlayerService(@Qualifier("espnTemplate") RestTemplate restTemplate,
+        EmailSenderService emailSenderService)
     {
         this.restTemplate = restTemplate;
         this.emailSenderService = emailSenderService;
     }
+
+    public void sendFreeAgentBatsToConsiderEmail(String leagueYear, int numberOfPlayers)
+    {
+        String filters =
+            "{\"players\": {\"filterStatus\": {\"value\": [\"FREEAGENT\"] }, \"filterSlotIds\":{\"value\":[0,1,2,3,4,5,6,7,8,9,10,11,12,19]}, \"limit\": "
+                + numberOfPlayers
+                + ", \"offset\": 0, \"sortPercOwned\": {\"sortAsc\": false, \"sortPriority\": 1 }, \"sortDraftRanks\": {\"sortPriority\": 100, \"sortAsc\": true, \"value\": \"STANDARD\"}, \"filterRanksForRankTypes\": {\"value\": [\"STANDARD\"] } } }";
+
+        HashSet<Player> players = getAvailablePlayers(leagueYear, filters);
+
+        LocalDate d = LocalDate.now(ZoneId.of("America/New_York"));
+        String dateToFetchSummaryFor = d.format(DateTimeFormatter.ofPattern("YYYYMMdd"));
+        ScheduledMatchupContainer daysSchedule = getDaysSchedule(dateToFetchSummaryFor);
+
+        identifyMatchupsForPlayers(daysSchedule, players);
+
+        List<Player> playersList = new ArrayList<>(players);
+
+        List<Player> playersWorthPickingUp = playersList.stream()
+            .filter(p -> p.getOpposingPitcher() != null && !p.isInjured())
+            .collect(Collectors.toList());
+
+        Collections.sort(playersWorthPickingUp, (player1, player2) ->
+        {
+            Double opposingOps1 = player1.getOPSBasedOnOpposingPitcher();
+            Double opposingOps2 = player2.getOPSBasedOnOpposingPitcher();
+
+            return opposingOps1.compareTo(opposingOps2);
+        });
+
+        // sort players by OPS against opposing pitcher
+        playersWorthPickingUp.stream()
+            .sorted(Comparator.comparingDouble(Player::getOPSBasedOnOpposingPitcher));
+        // sort by descending OPS
+        Collections.reverse(playersWorthPickingUp);
+
+        // send to me only!
+        emailSenderService.sendFABatsEmail(playersWorthPickingUp, "jonrhines@gmail.com");
+
+    }
+
 
     /**
      * Return a list of all teams in the league with their current rosters
@@ -169,16 +212,8 @@ public class PlayerService extends ESPNService
         HttpEntity<Topics> entity = new HttpEntity<>(getEspnRequestHeaders(leagueYear, null));
 
         // get all games for the day:
-        String scheduleUrl =
-            "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
-                + dateToFetchSummaryFor;
-        ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
-            .getForEntity(
-                scheduleUrl,
-                ScheduledMatchupContainer.class);
-
-        ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
-            .getBody();
+        ScheduledMatchupContainer scheduledMatchupContainer = getDaysSchedule(
+            dateToFetchSummaryFor);
 
         // loop through each team and attempt to send
         teamIds.stream().forEach(teamId ->
@@ -213,7 +248,6 @@ public class PlayerService extends ESPNService
                     player.setPlayerId(rosterEntry.getPlayerId());
                     player.setDisplayBatsThrows(
                         getHitHandedness(playerWithDetails.getDisplayBatsThrows()));
-                    player.setPositionName(getPositionName(player.getDefaultPositionId()));
 
                     myTeamPlayers.add(player);
                 }
@@ -249,9 +283,98 @@ public class PlayerService extends ESPNService
 
             if (email != null)
             {
-                emailSenderService.sendEmail(myTeamPlayers, email);
+                emailSenderService.sendMatchupEmail(myTeamPlayers, email);
             }
         });
+    }
+
+    private Set<Player> identifyMatchupsForPlayers(ScheduledMatchupContainer scheduleOfGames,
+        Set<Player> players)
+    {
+        scheduleOfGames.getEvents().stream().forEach(event ->
+        {
+            // always assume theres at least one competition, which is the actual game
+            CompetitionsItem theGame = event.getCompetitions().get(0);
+
+            // always assume theres two teams playing
+            CompetitorsItem teamOne = theGame.getCompetitors().get(0);
+            CompetitorsItem teamTwo = theGame.getCompetitors().get(1);
+
+            // check if any players match for teamOne, if so, write opposing data of teamId two
+            Set<Player> myHittersOnTeamOne = players.stream()
+                .filter(player -> String.valueOf(player.getProTeamId()).equals(teamOne.getId()))
+                .collect(
+                    Collectors.toSet());
+
+            Set<Player> myHittersOnTeamTwo = players.stream()
+                .filter(player -> String.valueOf(player.getProTeamId()).equals(teamTwo.getId()))
+                .collect(
+                    Collectors.toSet());
+
+            updatePlayersWithOpposingTeamInfo(teamTwo, myHittersOnTeamOne, event);
+            updatePlayersWithOpposingTeamInfo(teamOne, myHittersOnTeamTwo, event);
+
+        });
+
+        return players;
+    }
+
+
+    /**
+     * Run a request to fetch the currently available free agent players mapped and hydrated to
+     * playerNames
+     *
+     * @param leagueYear
+     * @param filters
+     * @return
+     */
+    private HashSet<Player> getAvailablePlayers(String leagueYear, String filters)
+    {
+        HashSet<Player> players = new HashSet<>();
+
+        HttpHeaders headers = getEspnRequestHeaders(leagueYear, filters);
+
+        try
+        {
+            HttpEntity<Topics> entity = new HttpEntity<>(headers);
+
+            String url = "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+                + "/segments/0/leagues/" + LEAGUE_ID + "?&view=kona_player_info";
+            ResponseEntity<FreeAgentContainer> responseEntity = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                FreeAgentContainer.class);
+
+            FreeAgentContainer body = responseEntity.getBody();
+            body.getPlayers().parallelStream().forEach(freeAgent ->
+            {
+                players.add(freeAgent.getPlayer());
+            });
+
+            return players;
+
+        } catch (Exception e)
+        {
+            logger.error("An error occurred fetching all available free agents for the league.", e);
+            throw new RuntimeException(
+                "An error occurred fetching information from ESPN API! " + e.getMessage());
+        }
+    }
+
+    private ScheduledMatchupContainer getDaysSchedule(String dateToFetchSummaryFor)
+    {
+        String scheduleUrl =
+            "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates="
+                + dateToFetchSummaryFor;
+        ResponseEntity<ScheduledMatchupContainer> scheduledMatchupContainerResponse = restTemplate
+            .getForEntity(
+                scheduleUrl,
+                ScheduledMatchupContainer.class);
+
+        ScheduledMatchupContainer scheduledMatchupContainer = scheduledMatchupContainerResponse
+            .getBody();
+        return scheduledMatchupContainer;
     }
 
     /**
@@ -265,7 +388,7 @@ public class PlayerService extends ESPNService
         Set<Player> myPlayersPlayingThatTeam, EventsItem gameEvent)
     {
         Set<PlayerAthlete> cachedProbablePitchers = new HashSet<>();
-        myPlayersPlayingThatTeam.stream().forEach(myPlayer ->
+        myPlayersPlayingThatTeam.parallelStream().forEach(myPlayer ->
         {
 
             if (opposingTeam != null && !isEmpty(opposingTeam.getProbables()))
@@ -291,7 +414,7 @@ public class PlayerService extends ESPNService
 
                 myPlayer.setOpposingPitcher(probablePitcherAthlete);
 
-                PlayerSplits playerSplits = getPlayerSplits(myPlayer.getPlayerId());
+                PlayerSplits playerSplits = getPlayerSplits(myPlayer.getRealPlayerId());
                 String opsVsLefty = findSplitStatByName(playerSplits, "L", "OPS");
                 String opsVsRighty = findSplitStatByName(playerSplits, "R", "OPS");
                 myPlayer.setOpsVsLefties(opsVsLefty);
@@ -342,7 +465,7 @@ public class PlayerService extends ESPNService
     }
 
     /**
-     * Supported statTypes: "AB","R","H","2B","3B","HR","RBI","BB","HBP","SO","SB","CS","AVG","OBP","SLG","OPS
+     * Supported statName: "AB","R","H","2B","3B","HR","RBI","BB","HBP","SO","SB","CS","AVG","OBP","SLG","OPS
      *
      * @param playerSplits
      * @param statName
@@ -358,7 +481,7 @@ public class PlayerService extends ESPNService
             //        "vs. Right"
 
             String splitTypeToMatch = "vs. Right";
-            if(opposingPitcherThrows.equals("L"))
+            if (opposingPitcherThrows.equals("L"))
             {
                 splitTypeToMatch = "vs. Left";
             }
@@ -366,98 +489,43 @@ public class PlayerService extends ESPNService
             String finalSplitTypeToMatch = splitTypeToMatch;
 
             List<String> statsToMatch = new ArrayList<>();
-            playerSplits.getSplitCategories().forEach((splitCategoriesItem ->
+            if (playerSplits != null)
             {
-                splitCategoriesItem.getSplits().forEach(split ->
-                {
-                    if(split.getDisplayName().equals(finalSplitTypeToMatch))
-                    {
-                        statsToMatch.addAll(split.getStats());
-                    }
-                });
-            }));
 
-            int statNameIndex = playerSplits.getLabels().indexOf(statName);
-            return statsToMatch.get(statNameIndex);
-        } catch(Exception e)
+                playerSplits.getSplitCategories().forEach((splitCategoriesItem ->
+                {
+                    if (splitCategoriesItem == null || splitCategoriesItem.getSplits() == null)
+                    {
+                        return;
+                    }
+
+                    splitCategoriesItem.getSplits().forEach(split ->
+                    {
+                        if (split.getDisplayName().equals(finalSplitTypeToMatch))
+                        {
+                            statsToMatch.addAll(split.getStats());
+                        }
+                    });
+                }));
+
+                int statNameIndex = playerSplits.getLabels().indexOf(statName);
+                if (statsToMatch.get(statNameIndex) != null)
+                {
+                    return statsToMatch.get(statNameIndex);
+                } else
+                {
+                    return "";
+                }
+            } else
+            {
+                return "";
+            }
+        } catch (Exception e)
         {
-            logger.error("STAT CALCULATION ERROR OCCURRED!  {} {} {} ", playerSplits, opposingPitcherThrows, statName);
+            logger.error("STAT CALCULATION ERROR OCCURRED!  {} {} {} ", playerSplits,
+                opposingPitcherThrows, statName, e);
             return "";
         }
-    }
-
-    /**
-     * Get position name of baseball position num
-     *
-     * @param positionId
-     * @return
-     */
-    public String getPositionName(int positionId)
-    {
-        if (positionId == 2)
-        {
-            return "C";
-        }
-        if (positionId == 3)
-        {
-            return "1B";
-        }
-        if (positionId == 4)
-        {
-            return "2B";
-        }
-        if (positionId == 5)
-        {
-            return "3B";
-        }
-        if (positionId == 6)
-        {
-            return "SS";
-        }
-        if (positionId == 7 || positionId == 8 || positionId == 9)
-        {
-            return "OF";
-        }
-        return "UTIL";
-    }
-
-
-    /**
-     * Assumes displayBatsThrows is a slash delimited value where the first value is hit, second is
-     * throw: Right/Right or Left/Right
-     *
-     * @param displayBatsThrows
-     * @return R or L
-     */
-    private String getThrowArm(String displayBatsThrows)
-    {
-        // sometimes players dont have the delimited value
-        if (displayBatsThrows == null || displayBatsThrows.length() == 1)
-        {
-            return displayBatsThrows;
-        }
-        String[] split = displayBatsThrows.split("/");
-        String val = split[1];
-        return String.valueOf(val.charAt(0));
-    }
-
-    /**
-     * Assumes displayBatsThrows is a slash delimited value where the first value is hit, second is
-     * throw: Right/Right or Left/Right
-     *
-     * @param displayBatsThrows
-     * @return R or L
-     */
-    private String getHitHandedness(String displayBatsThrows)
-    {
-        // sometimes players dont have the delimited value
-        if (displayBatsThrows == null || displayBatsThrows.length() == 1)
-        {
-            return displayBatsThrows;
-        }
-        String[] split = displayBatsThrows.split("/");
-        String val = split[0];
-        return String.valueOf(val.charAt(0));
     }
 
     private String lookupEmailByTeam(int teamId)
