@@ -492,21 +492,24 @@ public class PlayerService extends ESPNService
             if (playerSplits != null)
             {
 
-                playerSplits.getSplitCategories().forEach((splitCategoriesItem ->
+                if (playerSplits.getSplitCategories() != null )
                 {
-                    if (splitCategoriesItem == null || splitCategoriesItem.getSplits() == null)
+                    playerSplits.getSplitCategories().forEach((splitCategoriesItem ->
                     {
-                        return;
-                    }
-
-                    splitCategoriesItem.getSplits().forEach(split ->
-                    {
-                        if (split.getDisplayName().equals(finalSplitTypeToMatch))
+                        if (splitCategoriesItem == null || splitCategoriesItem.getSplits() == null)
                         {
-                            statsToMatch.addAll(split.getStats());
+                            return;
                         }
-                    });
-                }));
+
+                        splitCategoriesItem.getSplits().forEach(split ->
+                        {
+                            if (split.getDisplayName().equals(finalSplitTypeToMatch))
+                            {
+                                statsToMatch.addAll(split.getStats());
+                            }
+                        });
+                    }));
+                }
 
                 int statNameIndex = playerSplits.getLabels().indexOf(statName);
                 if (statsToMatch.get(statNameIndex) != null)
