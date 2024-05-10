@@ -95,8 +95,7 @@ public class TransactionsService extends ESPNService
         try
         {
             HttpEntity<Topics> entity = new HttpEntity<>(headers);
-
-            String url = "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+            String url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
                     + "/segments/0/leagues/" + LEAGUE_ID
                     + "/communication/?view=kona_league_communication";
             ResponseEntity<Topics> responseEntity = restTemplate.exchange(
