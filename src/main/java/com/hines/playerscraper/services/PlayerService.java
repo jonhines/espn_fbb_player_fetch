@@ -148,15 +148,16 @@ public class PlayerService extends ESPNService
     private Team getTeam(String leagueYear, HttpEntity<Topics> entity, Team team)
     {
         // get teams roster
-        ResponseEntity<Team> rosterResponse = restTemplate.exchange(
-            "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
-                + "/segments/0/leagues/" + LEAGUE_ID + "/teams/" + team
-                .getId() + "?view=mRoster",
+        ResponseEntity<Teams> rosterResponse = restTemplate.exchange(
+            "https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+                + "/segments/0/leagues/" + LEAGUE_ID + "?view=mTeam&view=mRoster",
             HttpMethod.GET,
             entity,
-            Team.class);
+            Teams.class);
 
-        return rosterResponse.getBody();
+        Optional<Team> returnTeam = rosterResponse.getBody().getTeams().stream().filter(t -> t.getId() == team.getId()).findFirst();
+
+        return returnTeam.get();
     }
 
     @Async
@@ -424,7 +425,7 @@ public class PlayerService extends ESPNService
             myPlayer.setOpposingTeamHomeAway(opposingTeam.getHomeAway());
             myPlayer.setOpposingTeamId(opposingTeam.getId());
 
-            String opposingTeamName = opposingTeam.getTeam().getAbbreviation();
+            String opposingTeamName = opposingTeam.getTeam().getAbbrev();
             if (opposingTeam.getHomeAway().equals("home"))
             {
                 opposingTeamName = "@" + opposingTeamName;
@@ -511,8 +512,8 @@ public class PlayerService extends ESPNService
                     }));
                 }
 
-                int statNameIndex = playerSplits.getLabels().indexOf(statName);
-                if (statsToMatch.get(statNameIndex) != null)
+                Integer statNameIndex = playerSplits.getLabels() != null ? playerSplits.getLabels().indexOf(statName) : null;
+                if (statNameIndex != null && statsToMatch.get(statNameIndex) != null)
                 {
                     return statsToMatch.get(statNameIndex);
                 } else

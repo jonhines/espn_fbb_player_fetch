@@ -2,31 +2,29 @@ package com.hines.playerscraper.services;
 
 import org.springframework.http.HttpHeaders;
 
-public abstract class ESPNService
-{
+public abstract class ESPNService {
     public final static String LEAGUE_ID = "30710";
 
-    protected HttpHeaders getEspnRequestHeaders(String leagueYear, String filters)
-    {
+    protected HttpHeaders getEspnRequestHeaders(String leagueYear, String filters) {
 
+        //
         HttpHeaders headers = new HttpHeaders();
         headers.add("Referer",
-            "http://fantasy.espn.com/baseball/recentactivity?leagueId=" + LEAGUE_ID + "&endDate=20190729&seasonId=" + leagueYear
-                + "&startDate=20190727&teamId=-1&transactionType=2&activityType=2&page=1");
-        headers.add("X-Fantasy-Source", "kona");
+                "http://fantasy.espn.com");
         headers.add("User-Agent",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36");
-        headers.add("X-Fantasy-Platform", "kona-PROD-6b1bde3ecf8dde941512a5c0d02d8fd8a7461f47");
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36");
         headers.add("Origin", "http://fantasy.espn.com");
         headers.add("Cache-Control", "no-cache");
-        headers.add("Host", "fantasy.espn.com");
         headers.add("Cookie",
-            "espn_s2=AEAwiDIR7Un6znzyyrhqnfVQX4wb2tGm292n3kkeDgvuZNNM98L2KTQuXuO5bVyd0qCjrjxX0gk%2B7SWcDuNljIKb0KKntT43UYeNgeerd6ar16B0jlor1wbrX6wBReMQhI1vriQ8uUuh2RP58%2BBOfpdEcTImfla8T8H5L9uDD%2FwPZh%2FJKw8iSAVYuHu579OVXupmxeWBJ3mb%2B9ZxtTVzb%2FZC%2FMNODCTLGOp9U8w1YKoE86p8GgCfhP8qt%2BrTzQqWgD%2B0y2IesAObnSXTTa53YkYhlMta9SV%2BnOoDfjq96XDbJg%3D%3D; SWID={FF4191B2-668A-44DE-951C-6D8C351B60C1}");
+                "s_ecid=MCMID%7C08032739331642449463849769716303851202; device_538e0725=bf167bcf-b1c1-485f-813f-eb63c2314710; SWID={FF4191B2-668A-44DE-951C-6D8C351B60C1}; ESPN-ONESITE.WEB-PROD-ac=XUS; espnAuth={\"swid\":\"{FF4191B2-668A-44DE-951C-6D8C351B60C1}\"}; s_fid=38412A8A9E50E30A-0FD433C4CF16F060; s_nr=1699635554845-Repeat; AMCVS_EE0201AC512D2BE80A490D4C%40AdobeOrg=1; s_cc=true; country=us; s_omni_lid=%5B%5BB%5D%5D; userZip=01748; _cb=C30LTEBjQy7rxikW_; IR_gbd=espn.com; _fbp=fb.1.1713282469045.649577724; _gcl_au=1.1.907907477.1713282470; _pubcid=0dd1ae8e-8d87-4329-9c45-5d699c53df5b; _pubcid_cst=1izpLMgsJw%3D%3D; check=true; mbox=session#bdb10d243e054360b9f216065490a9bb#1714596721|PC#bdb10d243e054360b9f216065490a9bb.34_0#1777839661; hashedIp=db99343aa02f83487bf76f14315fe7ef9c19618f353d915459006f27517a5ccb; nol_fpid=tgqes2hyhrfwxjkaoxmrvu34nh2at1714594860|1714594860466|1714594860466|1714594860466; ESPN-ONESITE.WEB-PROD.token=5=eyJhY2Nlc3NfdG9rZW4iOiJmMDJhY2MyYTk4YTI0NTFkYThiODdhZWU4YTE0OGY4MiIsInJlZnJlc2hfdG9rZW4iOiJkMThjOWQ2OTMxNWI0YzI2Yjc4NDUyMTM2ZTYwNWJjMiIsInN3aWQiOiJ7RkY0MTkxQjItNjY4QS00NERFLTk1MUMtNkQ4QzM1MUI2MEMxfSIsInR0bCI6ODY0MDAsInJlZnJlc2hfdHRsIjoxNTU1MjAwMCwiaGlnaF90cnVzdF9leHBpcmVzX2luIjpudWxsLCJpbml0aWFsX2dyYW50X2luX2NoYWluX3RpbWUiOjE3MTAxNjY4MjMyMTAsImlhdCI6MTcxNTI3OTg2MjAwMCwiZXhwIjoxNzE1MzY2MjYyMDAwLCJyZWZyZXNoX2V4cCI6MTczMDgzMTg2MjAwMCwiaGlnaF90cnVzdF9leHAiOm51bGwsInNzbyI6bnVsbCwiYXV0aGVudGljYXRvciI6ImRpc25leWlkIiwibG9naW5WYWx1ZSI6bnVsbCwiY2xpY2tiYWNrVHlwZSI6bnVsbCwic2Vzc2lvblRyYW5zZmVyS2V5IjoidUNFclpQLUJ3VF9ocFU4d01IdTZmZ1phanJXYUNmcDNqZEUydURobjlURjZMa1UwSDdEbDRJNUZxcmpET2lXQTgwdTlvYUJoVWtaMUFJMGF3eDZvX1JPaDV2dDNnX1pHdnlLVi12WWZJVU1ibi16SE5vYyIsImNyZWF0ZWQiOiIyMDI0LTA1LTA5VDE4OjM3OjQyLjA3OVoiLCJsYXN0Q2hlY2tlZCI6IjIwMjQtMDUtMDlUMTg6Mzc6NDIuMDc5WiIsImV4cGlyZXMiOiIyMDI0LTA1LTEwVDE4OjM3OjQyLjAwMFoiLCJyZWZyZXNoX2V4cGlyZXMiOiIyMDI0LTExLTA1VDE4OjM3OjQyLjAwMFoifQ==|eyJraWQiOiJxUEhmditOL0tONE1zYnVwSE1PWWxBc0pLcWVaS1U2Mi9DZjNpSm1uOEJ6dzlwSW5xbTVzUnc9PSIsImFsZyI6IlJTMjU2In0.eyJpc3MiOiJodHRwczovL2F1dGhvcml6YXRpb24uZ28uY29tIiwic3ViIjoie0ZGNDE5MUIyLTY2OEEtNDRERS05NTFDLTZEOEMzNTFCNjBDMX0iLCJhdWQiOiJFU1BOLU9ORVNJVEUuV0VCLVBST0QiLCJleHAiOjE3MTUzNjYyNjIsImlhdCI6MTcxNTI3OTg2MiwianRpIjoiTzJ3M0xmVElMZllqeE95eFFlZnJ6ZyIsIm5iZiI6MTcxNTI3OTgwMiwiYV90eXAiOiJPTkVJRF9UUlVTVEVEIiwiYV9jYXQiOiJHVUVTVCIsImF0ciI6ImRpc25leWlkIiwic2NvcGVzIjpbIkFVVEhaX0dVRVNUX1NFQ1VSRURfU0VTU0lPTiJdLCJjX3RpZCI6IjEzMjQiLCJpZ2ljIjoxNzEwMTY2ODIzMjEwLCJodGF2IjoyLCJodGQiOjE4MDAsInJ0dGwiOjE1NTUyMDAwLCJlbWFpbCI6ImpvbnJoaW5lc0BnbWFpbC5jb20ifQ.Vl-WuWHBgLhnycyGtmE7WjQT2aghPkPjDbk3Ovn-Lr4VQTvoQBqSq9b0-SrQXctqoS_I3OKXl0Xo_vxHxVfJxyoqpwG9yNlHje1ge0I29H17Ug3tMyCHBhw_p04TrGv0TL9yy_OySZhVwrs3GjcsCdj5SfM_THDYb1Wv0s5jWNkill1ywAqXYLaLIDASmGlZ_yhmW-wFQI8R5XXpApNgy10DXz7QwPED1tugNHZwetY2efQs04HEqkYd-DTiHRqP98mXKtlkwUrc18ezrwjl1DHQvaHNO3Un5IBHXPdR_OcOXtAAaziBM_4lMyULQHzfPXK3H0VJtekQmNXzmIY8iw; _cc_id=f82c5628d268deda92c40f76086a20e0; panoramaId_expiry=1715884723448; panoramaId=d700810cf173506fed0a0fbdff014945a7027e1ff1c84d8bbdcba86ec6252475; panoramaIdType=panoIndiv; _au_1d=AU1D-0100-001715279923-69ZC34D3-11UZ; s_ensNR=1715348299781-Repeat; OptanonConsent=isGpcEnabled=0&datestamp=Fri+May+10+2024+09%3A38%3A20+GMT-0400+(Eastern+Daylight+Time)&version=202310.1.0&isIABGlobal=false&hosts=&consentId=72c85311-dc9f-479b-96cb-1249c03af732&interactionCount=1&landingPath=NotLandingPage&groups=C0001%3A1%2CC0003%3A1%2CC0002%3A1%2CC0004%3A1%2CC0005%3A1%2CBG1145%3A1&AwaitingReconsent=false&browserGpcFlag=0; IR_9070=1715348300189%7C0%7C1715348300189%7C%7C; AMCV_EE0201AC512D2BE80A490D4C%40AdobeOrg=-330454231%7CMCIDTS%7C19854%7CMCMID%7C08032739331642449463849769716303851202%7CMCAAMLH-1715953100%7C7%7CMCAAMB-1715953100%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1715355500s%7CNONE%7CMCAID%7CNONE%7CvVersion%7C3.1.2; _cb_svref=external; ab.storage.sessionId.96ad02b7-2edc-4238-8442-bc35ba85853c=%7B%22g%22%3A%22e057053f-6f84-f947-bd28-e465ac6ce0fd%22%2C%22e%22%3A1715350100237%2C%22c%22%3A1715348300237%2C%22l%22%3A1715348300237%7D; ab.storage.deviceId.96ad02b7-2edc-4238-8442-bc35ba85853c=%7B%22g%22%3A%22cf6b25ad-637a-16bc-a6b5-82159ea70eb6%22%2C%22c%22%3A1699372962036%2C%22l%22%3A1715348300238%7D; ab.storage.userId.96ad02b7-2edc-4238-8442-bc35ba85853c=%7B%22g%22%3A%22%7BFF4191B2-668A-44DE-951C-6D8C351B60C1%7D%22%2C%22c%22%3A1699372962032%2C%22l%22%3A1715348300238%7D; __gads=ID=86f6343c1c24415f:T=1713282469:RT=1715348301:S=ALNI_MYJZQ6JYdwK3Cz4gzPzGxPjgr07-g; __gpi=UID=00000a1f0ee1fc30:T=1713282469:RT=1715348301:S=ALNI_Mbf7P_YjO1-VlHom4-3kMu9XJr78w; __eoi=ID=43b0f31e03f61846:T=1713282469:RT=1715348301:S=AA-Afjb9a-qjRZ9Fuj7yvdT4CTCs; s_c24_s=Less%20than%201%20day; FCNEC=%5B%5B%22AKsRol-SR0HTh4vkb2f5MPmBuzsjWrdXgSgJASy7Eel2JAH6y7FmMdK6yuwtgSF90QZROO2G6HNQljeoG4OfKfzIquEMF9cVRSY0FXD9Bo9xiWMU0dKodowzEbYooF9ShsbSldJPXKb7GWxA4RS0spNxJNEkx-XPAA%3D%3D%22%5D%5D; _chartbeat2=.1691971732166.1715348303746.0000001110011111.45VJvBwjCv1BZDRgjjjSUISqSuY.2; s_gpv_pn=fantasy%3Abaseball%3Aleague%3Afreeagents; s_c6=1715348304132-Repeat; s_sq=%5B%5BB%5D%5D; espn_s2=AEA%2FeTI6rV920DBwKgqt5RyBubtZwK59%2FhWCDUUSa0Sm8Zbv1AgoQJ%2Fshc%2BzeXSAsn5u%2FU8wGnDhl0oGZ5IokBCBo8AI%2FN0ykgqTzIhlYb6kQfCh5NYZBL%2BS7zAZtwhZdEGFFxI6yXGA7DWebkqozca%2B1cNkgZ8cd3oBBpclqIYsiuW8YwFeUJtCKDqEYepIgJJU3eeWHAA9bEX30ZMT0cyt3bpjsY2qDoxyXl%2FNZjhopuSK%2FFOUM3%2BWrYn6FPmUZi87fW589aieqZZKK7uUVMQEtzDGjKrKK%2F9u%2BpQC8y2Cbg%3D%3D; ESPN-ONESITE.WEB-PROD.idn=0081a04a57; _ga_FVWZ0RM4DH=GS1.1.1715348313.1.0.1715348313.60.0.0; _ga=GA1.2.1846439811.1715348314; _gid=GA1.2.309270259.1715348314; cto_bundle=fgnehl8lMkZmZUQ1OFI2JTJGVXJ6cnhucU1GZTVGck9GOHElMkI3SHFXQTQzbWJQWGx3b083RmJxY1N1WFRqUFglMkZsUWY0YlB0dkhDclhLU2xYSXJvUmVMTWFJcnRJalEwcGUzdFhzZFBWVTdINUFCMGdHUk05SG1La0E1cGI4bk5EVFltJTJGUlBvVEJZN2ViJTJGa1J2Sk1PbENxTUtyRVlSbkJjUDk3bUw0NzFZbXRPNW5WZmhsZFRHQ1dZN3MwUFlsOHo4aDZjS2R2VWFuZzNsMzE3TCUyQkFoSXJFTkpidmhUVVRLWmY5RkpEUnpjeFNaSHBudGNSTiUyQkNtb1FyM3JZN25RaDI3QXFYSVdQdHlUb2doenVzWVBad3ozcUhSbllwcEdCd0N5amdWRE1hdW1jb2kxT054OGxnNWgzV0R6Z2sxRTU3eUNlZmwzUzV4eFM0YU5rY2tqSzROempEY3p0aDJZJTJCaXAwdjlnVkElMkJoendPb3dBb0xzbyUzRA; s_c24=1715348392003; _chartbeat4=t=RqXi8B8yX2VDmvH3V0--PbEsQDC&E=11&x=0&c=1.56&y=3955&w=1136");
         headers.add("Connection", "keep-alive");
         headers.add("cache-control", "no-cache");
 
-        if (filters != null)
-        {
+
+        headers.add("x-fantasy-platform", "kona-PROD-9e73f98783702d0b868d017a86278e28d369d83c");
+        headers.add("x-fantasy-source", "kona");
+
+        if (filters != null) {
             headers.add("X-Fantasy-Filter", filters);
         }
 
