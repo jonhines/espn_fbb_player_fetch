@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class Team
 {
 
-    String abbrev;
+    String abbreviation;
     int id;
     String location;
     String displayName;

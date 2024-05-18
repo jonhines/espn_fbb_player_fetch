@@ -339,7 +339,7 @@ public class PlayerService extends ESPNService
         {
             HttpEntity<Topics> entity = new HttpEntity<>(headers);
 
-            String url = "https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+            String url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
                 + "/segments/0/leagues/" + LEAGUE_ID + "?&view=kona_player_info";
             ResponseEntity<FreeAgentContainer> responseEntity = restTemplate.exchange(
                 url,
@@ -425,7 +425,7 @@ public class PlayerService extends ESPNService
             myPlayer.setOpposingTeamHomeAway(opposingTeam.getHomeAway());
             myPlayer.setOpposingTeamId(opposingTeam.getId());
 
-            String opposingTeamName = opposingTeam.getTeam().getAbbrev();
+            String opposingTeamName = opposingTeam.getTeam().getAbbreviation();
             if (opposingTeam.getHomeAway().equals("home"))
             {
                 opposingTeamName = "@" + opposingTeamName;
