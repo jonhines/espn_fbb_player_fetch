@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.apache.logging.log4j.util.Strings.isNotBlank;
+
 
 @Service
 public class TransactionsService extends ESPNService
@@ -105,7 +107,6 @@ public class TransactionsService extends ESPNService
                 Topics.class);
 
             Topics body = responseEntity.getBody();
-            // https://fantasy.espn.com/apis/v3/games/flb/seasons/2019/players/%s?scoringPeriodId=0&view=players_wl
             body.getTopics().parallelStream().forEach(topic ->
             {
                 // when polling only for FA Adds, there will only be a single message, make this more dynamic later
@@ -114,10 +115,12 @@ public class TransactionsService extends ESPNService
                     .getPlayerByIdAsync(leagueYear, message.getTargetId());
                 try
                 {
-                    playerNames.add(playerFuture.get(2, TimeUnit.SECONDS).getFullName());
+                    Player player = playerFuture.get(5, TimeUnit.SECONDS);
+                    if(player != null && isNotBlank(player.getFullName()))
+                        playerNames.add(player.getFullName());
                 } catch (ExecutionException | InterruptedException | TimeoutException e)
                 {
-                    logger.error("concurrent issue fetching player, ignoring!", e);
+                    logger.error("concurrent issue fetching player, ignoring! for player " + message.getTargetId(), e);
                 }
             });
 

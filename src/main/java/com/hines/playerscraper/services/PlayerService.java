@@ -169,21 +169,25 @@ public class PlayerService extends ESPNService
     public Player getPlayerById(String leagueYear, String playerId)
     {
         String url = String
-            .format("https://fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
-                    + "/players/%s?scoringPeriodId=0&view=players_wl",
-                playerId);
+            .format("https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/" + leagueYear
+                    + "/segments/0/leagues/30710?scoringPeriodId=0&view=kona_playercard");
 
-        HttpEntity<Topics> entity = new HttpEntity<>(getEspnRequestHeaders(leagueYear, null));
+        String playerFilter = "{\"players\":{\"filterIds\":{\"value\":["+playerId+"]}}}";
+
+        HttpEntity<Topics> entity = new HttpEntity<>(getEspnRequestHeaders(leagueYear, playerFilter));
         try
         {
-
-            ResponseEntity<Player> playerResponseEntity = restTemplate.exchange(
+            ResponseEntity<PlayerContainer> playerResponseEntity = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
-                Player.class);
+                    PlayerContainer.class);
 
-            return playerResponseEntity.getBody();
+            if (playerResponseEntity.getBody().getPlayers() != null && !playerResponseEntity.getBody().getPlayers().isEmpty())
+            {
+                return playerResponseEntity.getBody().getPlayers().get(0).getPlayer();
+            }
+            return null;
 
         } catch (Exception e)
         {
